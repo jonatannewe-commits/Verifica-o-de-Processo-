@@ -21,7 +21,6 @@
         h2 { text-align: center; color: var(--primary-dark); font-weight: 700; margin-bottom: 5px; }
         .header-line { height: 4px; width: 40px; background: var(--primary-dark); margin: 0 auto 20px; border-radius: 2px; }
 
-        /* Dashboard Styles */
         .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .dash-card { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 10px; text-align: center; }
         .dash-card.full { grid-column: span 2; border-bottom: 3px solid var(--primary-dark); }
@@ -35,6 +34,9 @@
         label { display: block; margin-top: 15px; font-weight: 600; font-size: 12px; color: #555; text-transform: uppercase; }
         input, select, textarea { width: 100%; padding: 12px; margin-top: 6px; border: 1.5px solid #dce1e5; border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none; }
         
+        /* Estilo para o campo de foto */
+        input[type="file"] { background: #f8f9fa; padding: 10px; border: 2px dashed #bdc3c7; }
+
         .btn-save { background-color: var(--success-green); color: white; border: none; margin-top: 25px; padding: 16px; width: 100%; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
         .btn-back { background-color: transparent; color: #7f8c8d; border: 1px solid #bdc3c7; margin-top: 10px; padding: 12px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: 600; }
 
@@ -43,6 +45,7 @@
         .status-conforme { background: #e8f5e9; color: #2e7d32; }
         .status-nc { background: #ffebee; color: #c62828; }
         .sector-tag { background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 10px; color: #666; }
+        .img-preview { width: 100%; margin-top: 10px; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -105,6 +108,9 @@
                 <textarea id="nc_descricao" rows="2"></textarea>
                 <label>Quantidade com Defeito</label>
                 <input type="number" id="qtd_nc">
+                
+                <label style="color: var(--danger-red);">📸 Foto do Defeito (Obrigatório)</label>
+                <input type="file" id="foto_nc" accept="image/*" capture="environment">
             </div>
 
             <button type="button" class="btn-save" id="btnSalvar">FINALIZAR REGISTRO</button>
@@ -121,8 +127,10 @@
 </div>
 
 <script type="module">
+    // Importação dos módulos necessários (Firestore + Storage)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCybv0o7mXVrtNpf_CTLK4hHBot23xAr_U",
@@ -136,6 +144,7 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const storage = getStorage(app);
 
     async function carregarDashboard() {
         try {
@@ -157,20 +166,39 @@
 
     async function salvarNoFirebase() {
         const btn = document.getElementById('btnSalvar');
-        if(!document.getElementById('inspetor').value) return alert("Preencha o inspetor!");
-        btn.disabled = true; btn.innerText = "SALVANDO...";
+        const inspetor = document.getElementById('inspetor').value;
+        const status = document.getElementById('status').value;
+        const fotoFile = document.getElementById('foto_nc').files[0];
+
+        if(!inspetor) return alert("Preencha o inspetor!");
+        
+        // Validação Obrigatória da Imagem se for NC
+        if(status === 'nao-conforme' && !fotoFile) {
+            return alert("ERRO: Para produtos não conformes, a foto é obrigatória!");
+        }
+
+        btn.disabled = true; btn.innerText = "ENVIANDO DADOS...";
 
         try {
-            const status = document.getElementById('status').value;
+            let fotoUrl = null;
+
+            // Se tiver foto, faz o upload para o Storage primeiro
+            if(fotoFile) {
+                const storageRef = ref(storage, `fotos_inspecao/${Date.now()}_${fotoFile.name}`);
+                const snapshot = await uploadBytes(storageRef, fotoFile);
+                fotoUrl = await getDownloadURL(snapshot.ref);
+            }
+
             const payload = {
                 setor: document.getElementById('setor_atual').value,
-                inspetor: document.getElementById('inspetor').value,
+                inspetor: inspetor,
                 turno: document.getElementById('turno').value,
                 maquina: document.getElementById('maquina').value,
                 artigo: document.getElementById('artigo').value,
                 status: status,
                 data: new Date().toLocaleString('pt-BR'),
-                timestamp: new Date()
+                timestamp: new Date(),
+                fotoUrl: fotoUrl // Link da imagem anexada
             };
 
             if(status === 'conforme') {
@@ -181,27 +209,36 @@
             }
 
             await addDoc(collection(db, "inspecoes"), payload);
-            alert("Registro Concluído!");
+            alert("Registro e Foto salvos com sucesso!");
             location.reload();
-        } catch (e) { alert("Erro: " + e.message); btn.disabled = false; }
+        } catch (e) { 
+            alert("Erro ao salvar: " + e.message); 
+            btn.disabled = false; 
+            btn.innerText = "FINALIZAR REGISTRO";
+        }
     }
 
     async function listarDados() {
         showScreen('lista-inspecoes');
         const container = document.getElementById('cards-container');
-        container.innerHTML = "Buscando...";
+        container.innerHTML = "Buscando histórico...";
         const q = query(collection(db, "inspecoes"), orderBy("timestamp", "desc"));
         const snap = await getDocs(q);
         container.innerHTML = "";
+        
         snap.forEach(doc => {
             const item = doc.data();
             const badge = item.status === 'nao-conforme' ? 'status-nc' : 'status-conforme';
+            
             container.innerHTML += `
                 <div class="card">
                     <span class="status-badge ${badge}">${item.status}</span>
                     <span class="sector-tag">${item.setor || 'N/A'}</span><br>
                     <strong>${item.artigo}</strong> | Mq: ${item.maquina} <br>
                     ${item.status === 'conforme' ? `Qtd: ${item.quantidade}` : `NC: ${item.nao_conformidade} (${item.quantidade_nc})`}
+                    
+                    ${item.fotoUrl ? `<img src="${item.fotoUrl}" class="img-preview" onclick="window.open('${item.fotoUrl}', '_blank')">` : ''}
+                    
                     <div style="margin-top:8px; font-size:11px; color:#999">${item.data} | Insp: ${item.inspetor} (T: ${item.turno})</div>
                 </div>`;
         });
@@ -224,3 +261,4 @@
 </script>
 </body>
 </html>
+
