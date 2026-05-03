@@ -3,76 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>App Inspeção - Qualidade</title>
+    <title>Sistema de Qualidade Têxtil</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: #eef2f7; color: #333; }
-        .container { max-width: 600px; margin: 20px auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-        .menu-btn { width: 100%; padding: 18px; margin: 12px 0; font-size: 16px; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; background-color: #3498db; color: white; transition: 0.3s; }
-        .menu-btn:hover { background-color: #2980b9; }
+        :root {
+            --primary-dark: #2c3e50;
+            --accent-blue: #34495e;
+            --success-green: #27ae60;
+            --danger-red: #e74c3c;
+            --bg-gray: #f4f7f6;
+            --text-main: #333;
+            --white: #ffffff;
+        }
+
+        body { font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; background-color: var(--bg-gray); color: var(--text-main); }
+        .container { max-width: 500px; margin: 20px auto; background: var(--white); padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+        
+        h2 { text-align: center; color: var(--primary-dark); font-weight: 700; margin-bottom: 5px; }
+        .header-line { height: 4px; width: 40px; background: var(--primary-dark); margin: 0 auto 20px; border-radius: 2px; }
+
+        /* Dashboard Styles */
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .dash-card { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 10px; text-align: center; }
+        .dash-card.full { grid-column: span 2; border-bottom: 3px solid var(--primary-dark); }
+        .dash-card h4 { margin: 0; font-size: 11px; color: #7f8c8d; text-transform: uppercase; }
+        .dash-card p { margin: 5px 0 0; font-size: 22px; font-weight: bold; color: var(--primary-dark); }
+        
+        .menu-btn { width: 100%; padding: 16px; margin: 8px 0; font-size: 15px; font-weight: 600; cursor: pointer; border: none; border-radius: 8px; background-color: var(--primary-dark); color: white; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .menu-btn:hover { background-color: #1a252f; transform: translateY(-1px); }
+
         .hidden { display: none; }
-        label { display: block; margin-top: 15px; font-weight: 600; font-size: 14px; }
-        input, select, textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #dcdde1; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        .btn-save { background-color: #27ae60; color: white; border: none; margin-top: 25px; padding: 15px; width: 100%; border-radius: 8px; font-size: 18px; cursor: pointer; }
-        .btn-back { background-color: #7f8c8d; color: white; border: none; margin-top: 10px; padding: 12px; width: 100%; border-radius: 8px; cursor: pointer; }
-        .card { background: #f9f9f9; padding: 15px; border-left: 5px solid #3498db; margin-bottom: 10px; border-radius: 4px; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .status-badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
-        .status-conforme { background: #d4edda; color: #155724; }
-        .status-nc { background: #f8d7da; color: #721c24; }
+        label { display: block; margin-top: 15px; font-weight: 600; font-size: 12px; color: #555; text-transform: uppercase; }
+        input, select, textarea { width: 100%; padding: 12px; margin-top: 6px; border: 1.5px solid #dce1e5; border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none; }
+        
+        .btn-save { background-color: var(--success-green); color: white; border: none; margin-top: 25px; padding: 16px; width: 100%; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .btn-back { background-color: transparent; color: #7f8c8d; border: 1px solid #bdc3c7; margin-top: 10px; padding: 12px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: 600; }
+
+        .card { background: var(--white); padding: 15px; border: 1px solid #e1e8ed; margin-bottom: 10px; border-radius: 8px; font-size: 14px; }
+        .status-badge { float: right; padding: 3px 8px; border-radius: 5px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+        .status-conforme { background: #e8f5e9; color: #2e7d32; }
+        .status-nc { background: #ffebee; color: #c62828; }
+        .sector-tag { background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 10px; color: #666; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div id="home">
-        <h2>Verificação de Processo</h2>
-        <button class="menu-btn" onclick="showScreen('form-inspecao')">Registrar Verificação</button>
-        <button class="menu-btn" style="background-color: #8e44ad;" onclick="listarDados()">Ver Verificações Registradas</button>
+        <h2>QUALIDADE</h2>
+        <div class="header-line"></div>
+        <div class="dashboard">
+            <div class="dash-card full"><h4>Total de Inspeções</h4><p id="stat-total">-</p></div>
+            <div class="dash-card"><h4>Conformidade</h4><p id="stat-perc" style="color:var(--success-green)">-%</p></div>
+            <div class="dash-card"><h4>Não Conformes</h4><p id="stat-nc" style="color:var(--danger-red)">-</p></div>
+        </div>
+        <button class="menu-btn" onclick="showScreen('selecao-setor')"><span>📝</span> Registrar Verificação</button>
+        <button class="menu-btn" style="background-color: var(--accent-blue);" onclick="listarDados()"><span>📋</span> Histórico de Processo</button>
+    </div>
+
+    <div id="selecao-setor" class="hidden">
+        <h2>Escolha o Setor</h2>
+        <div class="header-line"></div>
+        <button class="menu-btn" onclick="abrirFormulario('Tecelagem')">🧵 Verificação Tecelagem</button>
+        <button class="menu-btn" onclick="abrirFormulario('Tratamento Têxtil')">🧪 Verificação Tratamento Têxtil</button>
+        <button class="btn-back" onclick="showScreen('home')">VOLTAR</button>
     </div>
 
     <div id="form-inspecao" class="hidden">
-        <h2>Nova Verificação</h2>
+        <h2 id="titulo-form">Nova Inspeção</h2>
+        <div class="header-line"></div>
         <form id="inspectionForm">
-            <label>Inspetor</label>
-            <input type="text" id="inspetor" required>
-            <label>Turno</label>
+            <input type="hidden" id="setor_atual">
+            
+            <label>Inspetor Responsável</label>
+            <input type="text" id="inspetor" placeholder="Nome" required>
+            
+            <label>Turno de Trabalho</label>
             <select id="turno">
-                <option value="1">1º Turno</option>
-                <option value="2">2º Turno</option>
-                <option value="3">3º Turno</option>
+                <option value="A">Turno A</option>
+                <option value="B">Turno B</option>
+                <option value="C">Turno C</option>
             </select>
-            <label>Máquina</label>
-            <input type="text" id="maquina" required>
-            <label>Artigo</label>
-            <input type="text" id="artigo" required>
+            
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;"><label>Máquina</label><input type="text" id="maquina" required></div>
+                <div style="flex: 1;"><label>Artigo</label><input type="text" id="artigo" required></div>
+            </div>
 
-            <label>Status</label>
-            <select id="status" onchange="toggleFields()">
-                <option value="conforme">Conforme</option>
-                <option value="nao-conforme">Não Conforme</option>
+            <label>Resultado</label>
+            <select id="status" onchange="toggleFields()" style="font-weight: bold;">
+                <option value="conforme">✅ CONFORME</option>
+                <option value="nao-conforme">❌ NÃO CONFORME</option>
             </select>
 
             <div id="div-conforme">
-                <label>Qtd Inspecionada</label>
+                <label>Quantidade Inspecionada</label>
                 <input type="number" id="qtd_conforme">
             </div>
 
             <div id="div-nao-conforme" class="hidden">
-                <label>Não Conformidade</label>
+                <label>Defeito Encontrado</label>
                 <textarea id="nc_descricao" rows="2"></textarea>
-                <label>Qtd Não Conforme</label>
+                <label>Quantidade com Defeito</label>
                 <input type="number" id="qtd_nc">
             </div>
 
-            <button type="button" class="btn-save" id="btnSalvar">Salvar no Firebase</button>
-            <button type="button" class="btn-back" onclick="showScreen('home')">Voltar</button>
+            <button type="button" class="btn-save" id="btnSalvar">FINALIZAR REGISTRO</button>
+            <button type="button" class="btn-back" onclick="showScreen('selecao-setor')">VOLTAR</button>
         </form>
     </div>
 
     <div id="lista-inspecoes" class="hidden">
-        <h2>Histórico de Inspeções</h2>
+        <h2>Histórico</h2>
+        <div class="header-line"></div>
         <div id="cards-container">Carregando...</div>
-        <button type="button" class="btn-back" onclick="showScreen('home')">Voltar ao Início</button>
+        <button type="button" class="btn-back" onclick="showScreen('home')">VOLTAR AO MENU</button>
     </div>
 </div>
 
@@ -93,15 +137,33 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Salvar Dados
+    async function carregarDashboard() {
+        try {
+            const querySnapshot = await getDocs(collection(db, "inspecoes"));
+            let total = 0, ncs = 0;
+            querySnapshot.forEach(doc => { total++; if (doc.data().status === 'nao-conforme') ncs++; });
+            const perc = total > 0 ? (((total - ncs) / total) * 100).toFixed(1) : 0;
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-perc').innerText = perc + "%";
+            document.getElementById('stat-nc').innerText = ncs;
+        } catch (e) { console.error(e); }
+    }
+
+    window.abrirFormulario = (setor) => {
+        document.getElementById('setor_atual').value = setor;
+        document.getElementById('titulo-form').innerText = setor;
+        showScreen('form-inspecao');
+    };
+
     async function salvarNoFirebase() {
         const btn = document.getElementById('btnSalvar');
-        btn.disabled = true;
-        btn.innerText = "Salvando...";
+        if(!document.getElementById('inspetor').value) return alert("Preencha o inspetor!");
+        btn.disabled = true; btn.innerText = "SALVANDO...";
 
         try {
             const status = document.getElementById('status').value;
             const payload = {
+                setor: document.getElementById('setor_atual').value,
                 inspetor: document.getElementById('inspetor').value,
                 turno: document.getElementById('turno').value,
                 maquina: document.getElementById('maquina').value,
@@ -111,7 +173,7 @@
                 timestamp: new Date()
             };
 
-            if (status === 'conforme') {
+            if(status === 'conforme') {
                 payload.quantidade = document.getElementById('qtd_conforme').value;
             } else {
                 payload.nao_conformidade = document.getElementById('nc_descricao').value;
@@ -119,49 +181,32 @@
             }
 
             await addDoc(collection(db, "inspecoes"), payload);
-            alert("Inspeção enviada com sucesso!");
-            document.getElementById('inspectionForm').reset();
-            showScreen('home');
-        } catch (e) {
-            alert("Erro ao salvar: " + e.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "Salvar no Firebase";
-        }
+            alert("Registro Concluído!");
+            location.reload();
+        } catch (e) { alert("Erro: " + e.message); btn.disabled = false; }
     }
 
-    // Listar Dados
     async function listarDados() {
         showScreen('lista-inspecoes');
         const container = document.getElementById('cards-container');
-        container.innerHTML = "Buscando dados...";
-
-        try {
-            const q = query(collection(db, "inspecoes"), orderBy("timestamp", "desc"));
-            const querySnapshot = await getDocs(q);
-            container.innerHTML = "";
-
-            querySnapshot.forEach((doc) => {
-                const item = doc.data();
-                const badgeClass = item.status === 'conforme' ? 'status-conforme' : 'status-nc';
-                
-                container.innerHTML += `
-                    <div class="card">
-                        <strong>Data:</strong> ${item.data} <br>
-                        <strong>Máquina:</strong> ${item.maquina} | <strong>Artigo:</strong> ${item.artigo} <br>
-                        <strong>Status:</strong> <span class="status-badge ${badgeClass}">${item.status}</span> <br>
-                        ${item.status === 'conforme' ? `<strong>Qtd:</strong> ${item.quantidade}` : 
-                        `<strong>NC:</strong> ${item.nao_conformidade} | <strong>Qtd NC:</strong> ${item.quantidade_nc}`}
-                        <br><small>Inspetor: ${item.inspetor} - Turno: ${item.turno}</small>
-                    </div>
-                `;
-            });
-        } catch (e) {
-            container.innerHTML = "Erro ao carregar dados.";
-        }
+        container.innerHTML = "Buscando...";
+        const q = query(collection(db, "inspecoes"), orderBy("timestamp", "desc"));
+        const snap = await getDocs(q);
+        container.innerHTML = "";
+        snap.forEach(doc => {
+            const item = doc.data();
+            const badge = item.status === 'nao-conforme' ? 'status-nc' : 'status-conforme';
+            container.innerHTML += `
+                <div class="card">
+                    <span class="status-badge ${badge}">${item.status}</span>
+                    <span class="sector-tag">${item.setor || 'N/A'}</span><br>
+                    <strong>${item.artigo}</strong> | Mq: ${item.maquina} <br>
+                    ${item.status === 'conforme' ? `Qtd: ${item.quantidade}` : `NC: ${item.nao_conformidade} (${item.quantidade_nc})`}
+                    <div style="margin-top:8px; font-size:11px; color:#999">${item.data} | Insp: ${item.inspetor} (T: ${item.turno})</div>
+                </div>`;
+        });
     }
 
-    // Funções Auxiliares de UI
     window.showScreen = (id) => {
         document.querySelectorAll('.container > div').forEach(div => div.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
@@ -175,7 +220,7 @@
 
     document.getElementById('btnSalvar').addEventListener('click', salvarNoFirebase);
     window.listarDados = listarDados;
-
+    carregarDashboard();
 </script>
 </body>
 </html>
