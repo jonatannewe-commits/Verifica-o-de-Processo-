@@ -34,7 +34,6 @@
         label { display: block; margin-top: 15px; font-weight: 600; font-size: 12px; color: #555; text-transform: uppercase; }
         input, select, textarea { width: 100%; padding: 12px; margin-top: 6px; border: 1.5px solid #dce1e5; border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none; }
         
-        /* Estilo para o campo de foto */
         input[type="file"] { background: #f8f9fa; padding: 10px; border: 2px dashed #bdc3c7; }
 
         .btn-save { background-color: var(--success-green); color: white; border: none; margin-top: 25px; padding: 16px; width: 100%; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
@@ -80,17 +79,32 @@
             <label>Inspetor Responsável</label>
             <input type="text" id="inspetor" placeholder="Nome" required>
             
+            <div id="container-tecelagem" class="hidden">
+                <label>Unidade de Tecelagem</label>
+                <select id="unidade_tecelagem" onchange="atualizarMaquinas()">
+                    <option value="">Selecione a Unidade</option>
+                    <option value="Tecelagem 1">Tecelagem 1</option>
+                    <option value="Tecelagem 2">Tecelagem 2</option>
+                    <option value="Tecelagem 3">Tecelagem 3</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>Máquina</label>
+                    <select id="maquina" required>
+                        <option value="">Aguardando Unidade...</option>
+                    </select>
+                </div>
+                <div style="flex: 1;"><label>Artigo</label><input type="text" id="artigo" required></div>
+            </div>
+
             <label>Turno de Trabalho</label>
             <select id="turno">
                 <option value="A">Turno A</option>
                 <option value="B">Turno B</option>
                 <option value="C">Turno C</option>
             </select>
-            
-            <div style="display: flex; gap: 10px;">
-                <div style="flex: 1;"><label>Máquina</label><input type="text" id="maquina" required></div>
-                <div style="flex: 1;"><label>Artigo</label><input type="text" id="artigo" required></div>
-            </div>
 
             <label>Resultado</label>
             <select id="status" onchange="toggleFields()" style="font-weight: bold;">
@@ -127,10 +141,8 @@
 </div>
 
 <script type="module">
-    // Importação dos módulos necessários (Firestore + Storage)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCybv0o7mXVrtNpf_CTLK4hHBot23xAr_U",
@@ -144,8 +156,109 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const storage = getStorage(app);
 
+    // Mapeamento de Máquinas
+    const maquinasPorTecelagem = {
+        "Tecelagem 1": ["Sg-01", "Sg-02", "Sg-03"],
+        "Tecelagem 2": ["TJ-01", "DNR-25", "FJ-15"],
+        "Tecelagem 3": ["Picanol-01", "Picanol-02"] // Exemplo para a 3
+    };
+
+    window.atualizarMaquinas = () => {
+        const unidade = document.getElementById('unidade_tecelagem').value;
+        const selectMaquina = document.getElementById('maquina');
+        selectMaquina.innerHTML = '<option value="">Selecione...</option>';
+
+        if (maquinasPorTecelagem[unidade]) {
+            maquinasPorTecelagem[unidade].forEach(maq => {
+                const opt = document.createElement('option');
+                opt.value = maq;
+                opt.innerText = maq;
+                selectMaquina.appendChild(opt);
+            });
+        }
+    };
+
+    window.abrirFormulario = (setor) => {
+        document.getElementById('setor_atual').value = setor;
+        document.getElementById('titulo-form').innerText = setor;
+        
+        const containerTec = document.getElementById('container-tecelagem');
+        if (setor === 'Tecelagem') {
+            containerTec.classList.remove('hidden');
+        } else {
+            containerTec.classList.add('hidden');
+            // Caso seja Tratamento Têxtil, pode definir máquinas fixas ou liberar input
+            document.getElementById('maquina').innerHTML = '<option value="Industrial-01">Industrial-01</option>';
+        }
+        
+        showScreen('form-inspecao');
+    };
+
+    async function processarImagem(arquivo) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(arquivo);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800;
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.6));
+                };
+            };
+        });
+    }
+
+    async function salvarNoFirebase() {
+        const btn = document.getElementById('btnSalvar');
+        const status = document.getElementById('status').value;
+        const fotoFile = document.getElementById('foto_nc').files[0];
+        const unidade = document.getElementById('unidade_tecelagem').value;
+        const setor = document.getElementById('setor_atual').value;
+
+        if(!document.getElementById('inspetor').value) return alert("Preencha o inspetor!");
+        if(setor === 'Tecelagem' && !unidade) return alert("Selecione a unidade de tecelagem!");
+        if(!document.getElementById('maquina').value) return alert("Selecione a máquina!");
+        if(status === 'nao-conforme' && !fotoFile) return alert("A foto é obrigatória!");
+
+        btn.disabled = true; btn.innerText = "PROCESSANDO...";
+
+        try {
+            let imagemBase64 = null;
+            if(fotoFile) imagemBase64 = await processarImagem(fotoFile);
+
+            const payload = {
+                setor: setor,
+                unidade: unidade || "N/A",
+                inspetor: document.getElementById('inspetor').value,
+                turno: document.getElementById('turno').value,
+                maquina: document.getElementById('maquina').value,
+                artigo: document.getElementById('artigo').value,
+                status: status,
+                data: new Date().toLocaleString('pt-BR'),
+                timestamp: new Date(),
+                fotoData: imagemBase64
+            };
+
+            status === 'conforme' ? 
+                payload.quantidade = document.getElementById('qtd_conforme').value : 
+                (payload.nao_conformidade = document.getElementById('nc_descricao').value, payload.quantidade_nc = document.getElementById('qtd_nc').value);
+
+            await addDoc(collection(db, "inspecoes"), payload);
+            alert("Salvo com sucesso!");
+            location.reload();
+        } catch (e) { alert("Erro: " + e.message); btn.disabled = false; }
+    }
+
+    // Funções de navegação e dashboard (mantidas da versão anterior)
     async function carregarDashboard() {
         try {
             const querySnapshot = await getDocs(collection(db, "inspecoes"));
@@ -158,88 +271,24 @@
         } catch (e) { console.error(e); }
     }
 
-    window.abrirFormulario = (setor) => {
-        document.getElementById('setor_atual').value = setor;
-        document.getElementById('titulo-form').innerText = setor;
-        showScreen('form-inspecao');
-    };
-
-    async function salvarNoFirebase() {
-        const btn = document.getElementById('btnSalvar');
-        const inspetor = document.getElementById('inspetor').value;
-        const status = document.getElementById('status').value;
-        const fotoFile = document.getElementById('foto_nc').files[0];
-
-        if(!inspetor) return alert("Preencha o inspetor!");
-        
-        // Validação Obrigatória da Imagem se for NC
-        if(status === 'nao-conforme' && !fotoFile) {
-            return alert("ERRO: Para produtos não conformes, a foto é obrigatória!");
-        }
-
-        btn.disabled = true; btn.innerText = "ENVIANDO DADOS...";
-
-        try {
-            let fotoUrl = null;
-
-            // Se tiver foto, faz o upload para o Storage primeiro
-            if(fotoFile) {
-                const storageRef = ref(storage, `fotos_inspecao/${Date.now()}_${fotoFile.name}`);
-                const snapshot = await uploadBytes(storageRef, fotoFile);
-                fotoUrl = await getDownloadURL(snapshot.ref);
-            }
-
-            const payload = {
-                setor: document.getElementById('setor_atual').value,
-                inspetor: inspetor,
-                turno: document.getElementById('turno').value,
-                maquina: document.getElementById('maquina').value,
-                artigo: document.getElementById('artigo').value,
-                status: status,
-                data: new Date().toLocaleString('pt-BR'),
-                timestamp: new Date(),
-                fotoUrl: fotoUrl // Link da imagem anexada
-            };
-
-            if(status === 'conforme') {
-                payload.quantidade = document.getElementById('qtd_conforme').value;
-            } else {
-                payload.nao_conformidade = document.getElementById('nc_descricao').value;
-                payload.quantidade_nc = document.getElementById('qtd_nc').value;
-            }
-
-            await addDoc(collection(db, "inspecoes"), payload);
-            alert("Registro e Foto salvos com sucesso!");
-            location.reload();
-        } catch (e) { 
-            alert("Erro ao salvar: " + e.message); 
-            btn.disabled = false; 
-            btn.innerText = "FINALIZAR REGISTRO";
-        }
-    }
-
     async function listarDados() {
         showScreen('lista-inspecoes');
         const container = document.getElementById('cards-container');
-        container.innerHTML = "Buscando histórico...";
+        container.innerHTML = "Carregando...";
         const q = query(collection(db, "inspecoes"), orderBy("timestamp", "desc"));
         const snap = await getDocs(q);
         container.innerHTML = "";
-        
         snap.forEach(doc => {
             const item = doc.data();
             const badge = item.status === 'nao-conforme' ? 'status-nc' : 'status-conforme';
-            
             container.innerHTML += `
                 <div class="card">
                     <span class="status-badge ${badge}">${item.status}</span>
-                    <span class="sector-tag">${item.setor || 'N/A'}</span><br>
+                    <span class="sector-tag">${item.unidade !== "N/A" ? item.unidade : item.setor}</span><br>
                     <strong>${item.artigo}</strong> | Mq: ${item.maquina} <br>
                     ${item.status === 'conforme' ? `Qtd: ${item.quantidade}` : `NC: ${item.nao_conformidade} (${item.quantidade_nc})`}
-                    
-                    ${item.fotoUrl ? `<img src="${item.fotoUrl}" class="img-preview" onclick="window.open('${item.fotoUrl}', '_blank')">` : ''}
-                    
-                    <div style="margin-top:8px; font-size:11px; color:#999">${item.data} | Insp: ${item.inspetor} (T: ${item.turno})</div>
+                    ${item.fotoData ? `<img src="${item.fotoData}" class="img-preview" onclick="window.open().document.write('<img src=\\'${item.fotoData}\\' style=\\'width:100%\\'>')">` : ''}
+                    <div style="margin-top:8px; font-size:11px; color:#999">${item.data} | Insp: ${item.inspetor}</div>
                 </div>`;
         });
     }
@@ -261,4 +310,3 @@
 </script>
 </body>
 </html>
-
