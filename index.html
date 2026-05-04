@@ -13,10 +13,16 @@
             --bg-gray: #f4f7f6;
             --text-main: #333;
             --white: #ffffff;
+            --warning-orange: #f39c12;
         }
 
         body { font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; background-color: var(--bg-gray); color: var(--text-main); }
-        .container { max-width: 500px; margin: 20px auto; background: var(--white); padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+        
+        #status-conexao { text-align: center; padding: 8px; font-size: 12px; font-weight: bold; color: white; transition: 0.3s; position: sticky; top: 0; z-index: 1000; }
+        .online { background-color: var(--success-green); }
+        .offline { background-color: var(--danger-red); }
+
+        .container { max-width: 500px; margin: 10px auto; background: var(--white); padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
         
         h2 { text-align: center; color: var(--primary-dark); font-weight: 700; margin-bottom: 5px; }
         .header-line { height: 4px; width: 40px; background: var(--primary-dark); margin: 0 auto 20px; border-radius: 2px; }
@@ -40,6 +46,7 @@
         .btn-back { background-color: transparent; color: #7f8c8d; border: 1px solid #bdc3c7; margin-top: 10px; padding: 12px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: 600; }
 
         .card { background: var(--white); padding: 15px; border: 1px solid #e1e8ed; margin-bottom: 10px; border-radius: 8px; font-size: 14px; }
+        .rascunho-tag { background: var(--warning-orange); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; margin-bottom: 5px; display: inline-block; }
         .status-badge { float: right; padding: 3px 8px; border-radius: 5px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
         .status-conforme { background: #e8f5e9; color: #2e7d32; }
         .status-nc { background: #ffebee; color: #c62828; }
@@ -48,6 +55,8 @@
     </style>
 </head>
 <body>
+
+<div id="status-conexao" class="online">CONECTADO AO SISTEMA</div>
 
 <div class="container">
     <div id="home">
@@ -59,7 +68,8 @@
             <div class="dash-card"><h4>Não Conformes</h4><p id="stat-nc" style="color:var(--danger-red)">-</p></div>
         </div>
         <button class="menu-btn" onclick="showScreen('selecao-setor')"><span>📝</span> Registrar Verificação</button>
-        <button class="menu-btn" style="background-color: var(--accent-blue);" onclick="listarDados()"><span>📋</span> Histórico de Processo</button>
+        <button class="menu-btn" style="background-color: var(--accent-blue);" onclick="listarDados('tudo')"><span>📋</span> Histórico de Processo</button>
+        <button class="menu-btn" style="background-color: var(--warning-orange);" onclick="listarDados('rascunhos')"><span>⏳</span> Rascunhos Pendentes (<span id="count-rascunhos">0</span>)</button>
     </div>
 
     <div id="selecao-setor" class="hidden">
@@ -92,38 +102,31 @@
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1;">
                     <label>Máquina</label>
-                    <select id="maquina" required>
-                        <option value="">Aguardando Unidade...</option>
-                    </select>
+                    <select id="maquina" required><option value="">Aguardando...</option></select>
                 </div>
                 <div style="flex: 1;"><label>Artigo</label><input type="text" id="artigo" required></div>
             </div>
 
-            <label>Turno de Trabalho</label>
-            <select id="turno">
-                <option value="A">Turno A</option>
-                <option value="B">Turno B</option>
-                <option value="C">Turno C</option>
-            </select>
+            <label>Turno</label>
+            <select id="turno"><option value="A">Turno A</option><option value="B">Turno B</option><option value="C">Turno C</option></select>
 
             <label>Resultado</label>
-            <select id="status" onchange="toggleFields()" style="font-weight: bold;">
+            <select id="status" onchange="toggleFields()">
                 <option value="conforme">✅ CONFORME</option>
                 <option value="nao-conforme">❌ NÃO CONFORME</option>
             </select>
 
             <div id="div-conforme">
-                <label>Quantidade Inspecionada</label>
+                <label>Qtd Inspecionada</label>
                 <input type="number" id="qtd_conforme">
             </div>
 
             <div id="div-nao-conforme" class="hidden">
-                <label>Defeito Encontrado</label>
+                <label>Defeito</label>
                 <textarea id="nc_descricao" rows="2"></textarea>
-                <label>Quantidade com Defeito</label>
+                <label>Qtd NC</label>
                 <input type="number" id="qtd_nc">
-                
-                <label style="color: var(--danger-red);">📸 Foto do Defeito (Obrigatório)</label>
+                <label style="color: var(--danger-red);">📸 Foto do Defeito</label>
                 <input type="file" id="foto_nc" accept="image/*" capture="environment">
             </div>
 
@@ -133,7 +136,7 @@
     </div>
 
     <div id="lista-inspecoes" class="hidden">
-        <h2>Histórico</h2>
+        <h2 id="titulo-lista">Histórico</h2>
         <div class="header-line"></div>
         <div id="cards-container">Carregando...</div>
         <button type="button" class="btn-back" onclick="showScreen('home')">VOLTAR AO MENU</button>
@@ -142,7 +145,9 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { 
+        getFirestore, collection, addDoc, getDocs, query, orderBy, enableIndexedDbPersistence 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCybv0o7mXVrtNpf_CTLK4hHBot23xAr_U",
@@ -157,24 +162,33 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Mapeamento de Máquinas
+    enableIndexedDbPersistence(db).catch(err => console.error("Persistência:", err.code));
+
+    const statusDiv = document.getElementById('status-conexao');
+    const btnSalvar = document.getElementById('btnSalvar');
+
+    function atualizarInterfaceConexao() {
+        const isOnline = navigator.onLine;
+        statusDiv.innerText = isOnline ? "CONECTADO AO SISTEMA" : "MODO OFFLINE - SALVANDO RASCUNHO";
+        statusDiv.className = isOnline ? "online" : "offline";
+        if(document.getElementById('home').classList.contains('hidden') === false) carregarDashboard();
+    }
+    window.addEventListener('online', atualizarInterfaceConexao);
+    window.addEventListener('offline', atualizarInterfaceConexao);
+
     const maquinasPorTecelagem = {
         "Tecelagem 1": ["Sg-01", "Sg-02", "Sg-03"],
         "Tecelagem 2": ["TJ-01", "DNR-25", "FJ-15"],
-        "Tecelagem 3": ["Picanol-01", "Picanol-02"] // Exemplo para a 3
+        "Tecelagem 3": ["Picanol-01", "Picanol-02"]
     };
 
     window.atualizarMaquinas = () => {
         const unidade = document.getElementById('unidade_tecelagem').value;
-        const selectMaquina = document.getElementById('maquina');
-        selectMaquina.innerHTML = '<option value="">Selecione...</option>';
-
+        const select = document.getElementById('maquina');
+        select.innerHTML = '<option value="">Selecione...</option>';
         if (maquinasPorTecelagem[unidade]) {
             maquinasPorTecelagem[unidade].forEach(maq => {
-                const opt = document.createElement('option');
-                opt.value = maq;
-                opt.innerText = maq;
-                selectMaquina.appendChild(opt);
+                let opt = document.createElement('option'); opt.value = maq; opt.innerText = maq; select.appendChild(opt);
             });
         }
     };
@@ -182,35 +196,22 @@
     window.abrirFormulario = (setor) => {
         document.getElementById('setor_atual').value = setor;
         document.getElementById('titulo-form').innerText = setor;
-        
-        const containerTec = document.getElementById('container-tecelagem');
-        if (setor === 'Tecelagem') {
-            containerTec.classList.remove('hidden');
-        } else {
-            containerTec.classList.add('hidden');
-            // Caso seja Tratamento Têxtil, pode definir máquinas fixas ou liberar input
-            document.getElementById('maquina').innerHTML = '<option value="Industrial-01">Industrial-01</option>';
-        }
-        
+        document.getElementById('container-tecelagem').classList.toggle('hidden', setor !== 'Tecelagem');
+        document.getElementById('maquina').innerHTML = setor === 'Tecelagem' ? '<option value="">Aguardando...</option>' : '<option value="Industrial-01">Industrial-01</option>';
         showScreen('form-inspecao');
     };
 
     async function processarImagem(arquivo) {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(arquivo);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
+        return new Promise(resolve => {
+            const reader = new FileReader(); reader.readAsDataURL(arquivo);
+            reader.onload = e => {
+                const img = new Image(); img.src = e.target.result;
                 img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800;
-                    let width = img.width;
-                    let height = img.height;
-                    if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-                    canvas.width = width; canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
+                    const canvas = document.createElement('canvas'); const MAX = 800;
+                    let w = img.width, h = img.height;
+                    if (w > MAX) { h *= MAX / w; w = MAX; }
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
                     resolve(canvas.toDataURL('image/jpeg', 0.6));
                 };
             };
@@ -218,26 +219,17 @@
     }
 
     async function salvarNoFirebase() {
-        const btn = document.getElementById('btnSalvar');
+        const f = document.getElementById('inspectionForm');
         const status = document.getElementById('status').value;
         const fotoFile = document.getElementById('foto_nc').files[0];
-        const unidade = document.getElementById('unidade_tecelagem').value;
-        const setor = document.getElementById('setor_atual').value;
+        if(!document.getElementById('inspetor').value || !document.getElementById('maquina').value) return alert("Campos obrigatórios!");
+        if(status === 'nao-conforme' && !fotoFile) return alert("Foto obrigatória!");
 
-        if(!document.getElementById('inspetor').value) return alert("Preencha o inspetor!");
-        if(setor === 'Tecelagem' && !unidade) return alert("Selecione a unidade de tecelagem!");
-        if(!document.getElementById('maquina').value) return alert("Selecione a máquina!");
-        if(status === 'nao-conforme' && !fotoFile) return alert("A foto é obrigatória!");
-
-        btn.disabled = true; btn.innerText = "PROCESSANDO...";
-
+        btnSalvar.disabled = true; btnSalvar.innerText = "PROCESSANDO...";
         try {
-            let imagemBase64 = null;
-            if(fotoFile) imagemBase64 = await processarImagem(fotoFile);
-
             const payload = {
-                setor: setor,
-                unidade: unidade || "N/A",
+                setor: document.getElementById('setor_atual').value,
+                unidade: document.getElementById('unidade_tecelagem').value || "N/A",
                 inspetor: document.getElementById('inspetor').value,
                 turno: document.getElementById('turno').value,
                 maquina: document.getElementById('maquina').value,
@@ -245,67 +237,76 @@
                 status: status,
                 data: new Date().toLocaleString('pt-BR'),
                 timestamp: new Date(),
-                fotoData: imagemBase64
+                fotoData: fotoFile ? await processarImagem(fotoFile) : null
             };
-
-            status === 'conforme' ? 
-                payload.quantidade = document.getElementById('qtd_conforme').value : 
-                (payload.nao_conformidade = document.getElementById('nc_descricao').value, payload.quantidade_nc = document.getElementById('qtd_nc').value);
+            if(status === 'conforme') payload.quantidade = document.getElementById('qtd_conforme').value;
+            else { payload.nao_conformidade = document.getElementById('nc_descricao').value; payload.quantidade_nc = document.getElementById('qtd_nc').value; }
 
             await addDoc(collection(db, "inspecoes"), payload);
-            alert("Salvo com sucesso!");
+            alert(navigator.onLine ? "Sucesso!" : "Salvo como rascunho!");
             location.reload();
-        } catch (e) { alert("Erro: " + e.message); btn.disabled = false; }
+        } catch (e) { alert(e.message); btnSalvar.disabled = false; }
     }
 
-    // Funções de navegação e dashboard (mantidas da versão anterior)
     async function carregarDashboard() {
-        try {
-            const querySnapshot = await getDocs(collection(db, "inspecoes"));
-            let total = 0, ncs = 0;
-            querySnapshot.forEach(doc => { total++; if (doc.data().status === 'nao-conforme') ncs++; });
-            const perc = total > 0 ? (((total - ncs) / total) * 100).toFixed(1) : 0;
-            document.getElementById('stat-total').innerText = total;
-            document.getElementById('stat-perc').innerText = perc + "%";
-            document.getElementById('stat-nc').innerText = ncs;
-        } catch (e) { console.error(e); }
+        const snap = await getDocs(collection(db, "inspecoes"));
+        let total = 0, ncs = 0, rascunhos = 0;
+        snap.forEach(doc => { 
+            total++; 
+            if(doc.data().status === 'nao-conforme') ncs++; 
+            if(doc.metadata.hasPendingWrites) rascunhos++;
+        });
+        document.getElementById('stat-total').innerText = total;
+        document.getElementById('stat-perc').innerText = total > 0 ? (((total-ncs)/total)*100).toFixed(1)+"%" : "0%";
+        document.getElementById('stat-nc').innerText = ncs;
+        document.getElementById('count-rascunhos').innerText = rascunhos;
     }
 
-    async function listarDados() {
+    async function listarDados(tipo) {
         showScreen('lista-inspecoes');
         const container = document.getElementById('cards-container');
-        container.innerHTML = "Carregando...";
-        const q = query(collection(db, "inspecoes"), orderBy("timestamp", "desc"));
-        const snap = await getDocs(q);
+        document.getElementById('titulo-lista').innerText = tipo === 'rascunhos' ? "Rascunhos Pendentes" : "Histórico";
+        container.innerHTML = "Buscando...";
+        
+        const snap = await getDocs(query(collection(db, "inspecoes"), orderBy("timestamp", "desc")));
         container.innerHTML = "";
+        let encontrou = false;
+
         snap.forEach(doc => {
             const item = doc.data();
+            const ehRascunho = doc.metadata.hasPendingWrites;
+            if(tipo === 'rascunhos' && !ehRascunho) return; 
+            
+            encontrou = true;
             const badge = item.status === 'nao-conforme' ? 'status-nc' : 'status-conforme';
             container.innerHTML += `
-                <div class="card">
+                <div class="card" style="${ehRascunho ? 'border-left: 5px solid var(--warning-orange)' : ''}">
+                    ${ehRascunho ? '<span class="rascunho-tag">⏳ PENDENTE DE SINCRONIZAÇÃO</span>' : ''}
                     <span class="status-badge ${badge}">${item.status}</span>
                     <span class="sector-tag">${item.unidade !== "N/A" ? item.unidade : item.setor}</span><br>
                     <strong>${item.artigo}</strong> | Mq: ${item.maquina} <br>
-                    ${item.status === 'conforme' ? `Qtd: ${item.quantidade}` : `NC: ${item.nao_conformidade} (${item.quantidade_nc})`}
                     ${item.fotoData ? `<img src="${item.fotoData}" class="img-preview" onclick="window.open().document.write('<img src=\\'${item.fotoData}\\' style=\\'width:100%\\'>')">` : ''}
-                    <div style="margin-top:8px; font-size:11px; color:#999">${item.data} | Insp: ${item.inspetor}</div>
+                    <div style="margin-top:8px; font-size:11px; color:#999">${item.data}</div>
                 </div>`;
         });
+        if(!encontrou) container.innerHTML = tipo === 'rascunhos' ? "<p style='text-align:center'>Nenhum rascunho pendente.</p>" : "Nenhum registro.";
     }
 
     window.showScreen = (id) => {
         document.querySelectorAll('.container > div').forEach(div => div.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
+        if(id === 'home') carregarDashboard();
     };
 
     window.toggleFields = () => {
-        const status = document.getElementById('status').value;
-        document.getElementById('div-conforme').classList.toggle('hidden', status !== 'conforme');
-        document.getElementById('div-nao-conforme').classList.toggle('hidden', status !== 'nao-conforme');
+        const s = document.getElementById('status').value;
+        document.getElementById('div-conforme').classList.toggle('hidden', s !== 'conforme');
+        document.getElementById('div-nao-conforme').classList.toggle('hidden', s !== 'nao-conforme');
     };
 
     document.getElementById('btnSalvar').addEventListener('click', salvarNoFirebase);
     window.listarDados = listarDados;
+    atualizarInterfaceConexao();
     carregarDashboard();
 </script>
 </body>
