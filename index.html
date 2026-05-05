@@ -3,151 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Qualidade Têxtil</title>
+    <title>Qualidade Têxtil BI - V3</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --primary-dark: #2c3e50;
-            --accent-blue: #34495e;
-            --success-green: #27ae60;
-            --danger-red: #e74c3c;
-            --bg-gray: #f4f7f6;
-            --text-main: #333;
-            --white: #ffffff;
-            --warning-orange: #f39c12;
+            --bg-dark: #1a1c2c;
+            --card-dark: #242745;
+            --primary-blue: #4e73df;
+            --accent-orange: #f39c12;
+            --text-light: #e0e0e0;
+            --success: #1cc88a;
+            --danger: #e74a3b;
         }
 
-        body { font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; background-color: var(--bg-gray); color: var(--text-main); }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background-color: var(--bg-dark); color: var(--text-light); }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; box-sizing: border-box; }
         
-        #status-conexao { text-align: center; padding: 8px; font-size: 12px; font-weight: bold; color: white; transition: 0.3s; position: sticky; top: 0; z-index: 1000; }
-        .online { background-color: var(--success-green); }
-        .offline { background-color: var(--danger-red); }
+        /* Dashboard */
+        .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .metric-card { background: var(--card-dark); padding: 15px; border-radius: 12px; border-bottom: 3px solid var(--primary-blue); text-align: center; }
+        .metric-card h4 { margin: 0; font-size: 11px; color: #858796; text-transform: uppercase; }
+        .metric-card p { margin: 5px 0 0; font-size: 20px; font-weight: bold; }
 
-        .container { max-width: 500px; margin: 10px auto; background: var(--white); padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
-        
-        h2 { text-align: center; color: var(--primary-dark); font-weight: 700; margin-bottom: 5px; }
-        .header-line { height: 4px; width: 40px; background: var(--primary-dark); margin: 0 auto 20px; border-radius: 2px; }
+        .chart-container { background: var(--card-dark); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
+        canvas { max-width: 100%; height: auto !important; }
 
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .dash-card { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 10px; text-align: center; }
-        .dash-card.full { grid-column: span 2; border-bottom: 3px solid var(--primary-dark); }
-        .dash-card h4 { margin: 0; font-size: 11px; color: #7f8c8d; text-transform: uppercase; }
-        .dash-card p { margin: 5px 0 0; font-size: 22px; font-weight: bold; color: var(--primary-dark); }
-        
-        .menu-btn { width: 100%; padding: 16px; margin: 8px 0; font-size: 15px; font-weight: 600; cursor: pointer; border: none; border-radius: 8px; background-color: var(--primary-dark); color: white; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .menu-btn:hover { background-color: #1a252f; transform: translateY(-1px); }
+        /* Menu */
+        .menu-btn { width: 100%; padding: 16px; margin: 10px 0; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: white; background: var(--card-dark); display: flex; align-items: center; justify-content: space-between; transition: 0.3s; box-sizing: border-box; }
+        .btn-action { background: var(--primary-blue); }
+        .btn-warning { background: var(--accent-orange); }
 
         .hidden { display: none; }
-        label { display: block; margin-top: 15px; font-weight: 600; font-size: 12px; color: #555; text-transform: uppercase; }
-        input, select, textarea { width: 100%; padding: 12px; margin-top: 6px; border: 1.5px solid #dce1e5; border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none; }
         
-        input[type="file"] { background: #f8f9fa; padding: 10px; border: 2px dashed #bdc3c7; }
+        /* Form */
+        label { display: block; margin-top: 12px; font-size: 12px; color: #858796; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #3d426a; background: #2f335d; color: white; box-sizing: border-box; font-size: 16px; }
+        .btn-save { background: var(--success); width: 100%; padding: 16px; border: none; border-radius: 10px; color: white; font-weight: bold; margin-top: 25px; cursor: pointer; }
+        .btn-back { background: transparent; border: 1px solid #3d426a; width: 100%; padding: 12px; margin-top: 10px; color: #858796; border-radius: 8px; cursor: pointer; }
 
-        .btn-save { background-color: var(--success-green); color: white; border: none; margin-top: 25px; padding: 16px; width: 100%; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
-        .btn-back { background-color: transparent; color: #7f8c8d; border: 1px solid #bdc3c7; margin-top: 10px; padding: 12px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: 600; }
-
-        .card { background: var(--white); padding: 15px; border: 1px solid #e1e8ed; margin-bottom: 10px; border-radius: 8px; font-size: 14px; }
-        .rascunho-tag { background: var(--warning-orange); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; margin-bottom: 5px; display: inline-block; }
-        .status-badge { float: right; padding: 3px 8px; border-radius: 5px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
-        .status-conforme { background: #e8f5e9; color: #2e7d32; }
-        .status-nc { background: #ffebee; color: #c62828; }
-        .sector-tag { background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 10px; color: #666; }
-        .img-preview { width: 100%; margin-top: 10px; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; }
+        .card { background: var(--card-dark); padding: 15px; border-radius: 10px; margin-bottom: 10px; border-left: 4px solid var(--primary-blue); }
+        .badge { float: right; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        .badge-conforme { background: rgba(28, 200, 138, 0.2); color: var(--success); }
+        .badge-nc { background: rgba(231, 74, 59, 0.2); color: var(--danger); }
+        .img-preview { width: 100%; margin-top: 10px; border-radius: 8px; }
     </style>
 </head>
 <body>
 
-<div id="status-conexao" class="online">CONECTADO AO SISTEMA</div>
-
 <div class="container">
     <div id="home">
-        <h2>QUALIDADE</h2>
-        <div class="header-line"></div>
-        <div class="dashboard">
-            <div class="dash-card full"><h4>Total de Inspeções</h4><p id="stat-total">-</p></div>
-            <div class="dash-card"><h4>Conformidade</h4><p id="stat-perc" style="color:var(--success-green)">-%</p></div>
-            <div class="dash-card"><h4>Não Conformes</h4><p id="stat-nc" style="color:var(--danger-red)">-</p></div>
+        <h2 style="text-align:center;">CONTROLE DE QUALIDADE</h2>
+        <div class="dash-grid">
+            <div class="metric-card"><h4>Total</h4><p id="h-total">0</p></div>
+            <div class="metric-card" style="border-color: var(--success)"><h4>Eficiência</h4><p id="h-perc">0%</p></div>
         </div>
-        <button class="menu-btn" onclick="showScreen('selecao-setor')"><span>📝</span> Registrar Verificação</button>
-        <button class="menu-btn" style="background-color: var(--accent-blue);" onclick="listarDados('tudo')"><span>📋</span> Histórico de Processo</button>
-        <button class="menu-btn" style="background-color: var(--warning-orange);" onclick="listarDados('rascunhos')"><span>⏳</span> Rascunhos Pendentes (<span id="count-rascunhos">0</span>)</button>
+        <button class="menu-btn btn-action" onclick="showScreen('selecao-setor')"><span>📝 Iniciar Verificação</span> <span>➔</span></button>
+        <button class="menu-btn" onclick="abrirIndicadores()"><span>📊 Dashboard & Ranking</span> <span>➔</span></button>
+        <button class="menu-btn" onclick="listarDados('tudo')"><span>📋 Histórico</span> <span>➔</span></button>
+        <button class="menu-btn btn-warning" onclick="listarDados('rascunhos')"><span>⏳ Rascunhos (<span id="c-rascunhos">0</span>)</span></button>
     </div>
 
     <div id="selecao-setor" class="hidden">
-        <h2>Escolha o Setor</h2>
-        <div class="header-line"></div>
-        <button class="menu-btn" onclick="abrirFormulario('Tecelagem')">🧵 Verificação Tecelagem</button>
-        <button class="menu-btn" onclick="abrirFormulario('Tratamento Têxtil')">🧪 Verificação Tratamento Têxtil</button>
+        <h2>Selecione o Setor</h2>
+        <button class="menu-btn" onclick="abrirFormulario('Tecelagem')">🧵 Tecelagem</button>
+        <button class="menu-btn" onclick="abrirFormulario('Tratamento Têxtil')">🧪 Tratamento Têxtil</button>
         <button class="btn-back" onclick="showScreen('home')">VOLTAR</button>
     </div>
 
     <div id="form-inspecao" class="hidden">
         <h2 id="titulo-form">Nova Inspeção</h2>
-        <div class="header-line"></div>
         <form id="inspectionForm">
             <input type="hidden" id="setor_atual">
             
-            <label>Inspetor Responsável</label>
-            <input type="text" id="inspetor" placeholder="Nome" required>
+            <label>Inspetor</label>
+            <input type="text" id="inspetor" placeholder="Nome do responsável">
             
-            <div id="container-tecelagem" class="hidden">
+            <div id="c-tecelagem" class="hidden">
                 <label>Unidade de Tecelagem</label>
-                <select id="unidade_tecelagem" onchange="atualizarMaquinas()">
-                    <option value="">Selecione a Unidade</option>
+                <select id="u_tecelagem" onchange="atualizarMaquinas()">
+                    <option value="">Selecione a Unidade...</option>
                     <option value="Tecelagem 1">Tecelagem 1</option>
                     <option value="Tecelagem 2">Tecelagem 2</option>
                     <option value="Tecelagem 3">Tecelagem 3</option>
                 </select>
             </div>
 
-            <div style="display: flex; gap: 10px;">
-                <div style="flex: 1;">
-                    <label>Máquina</label>
-                    <select id="maquina" required><option value="">Aguardando...</option></select>
-                </div>
-                <div style="flex: 1;"><label>Artigo</label><input type="text" id="artigo" required></div>
+            <div style="display:flex; gap:10px">
+                <div style="flex:1"><label>Máquina</label><select id="maquina"></select></div>
+                <div style="flex:1"><label>Artigo</label><input type="text" id="artigo"></div>
             </div>
 
-            <label>Turno</label>
-            <select id="turno"><option value="A">Turno A</option><option value="B">Turno B</option><option value="C">Turno C</option></select>
-
             <label>Resultado</label>
-            <select id="status" onchange="toggleFields()">
+            <select id="status" onchange="toggleNC()">
                 <option value="conforme">✅ CONFORME</option>
                 <option value="nao-conforme">❌ NÃO CONFORME</option>
             </select>
 
-            <div id="div-conforme">
-                <label>Qtd Inspecionada</label>
-                <input type="number" id="qtd_conforme">
+            <div id="campos-sempre-visiveis">
+                <label>Tipo de Produto</label>
+                <select id="tipo_produto">
+                    <option value="A metro">A metro</option>
+                    <option value="Confeccionado">Confeccionado</option>
+                </select>
+                <div style="display:flex; gap:10px">
+                    <div style="flex:1"><label>Qtd Acompanhada</label><input type="number" id="metragem"></div>
+                    <div style="flex:1"><label>Largura Pente</label><input type="text" id="pente"></div>
+                </div>
             </div>
 
-            <div id="div-nao-conforme" class="hidden">
-                <label>Defeito</label>
-                <textarea id="nc_descricao" rows="2"></textarea>
-                <label>Qtd NC</label>
-                <input type="number" id="qtd_nc">
-                <label style="color: var(--danger-red);">📸 Foto do Defeito</label>
+            <div id="div-nc" class="hidden">
+                <label style="color:var(--danger)">Defeito Encontrado</label>
+                <select id="nc_desc">
+                    <option value="">Selecione o defeito...</option>
+                    <option value="Furo">Furo</option>
+                    <option value="Mancha">Mancha</option>
+                    <option value="Fio Arrebentado">Fio Arrebentado</option>
+                    <option value="Erro de Desenho">Erro de Desenho</option>
+                    <option value="Trama Falha">Trama Falha</option>
+                    <option value="Outros">Outros</option>
+                </select>
+                <label>Foto do Defeito</label>
                 <input type="file" id="foto_nc" accept="image/*" capture="environment">
             </div>
 
-            <button type="button" class="btn-save" id="btnSalvar">FINALIZAR REGISTRO</button>
-            <button type="button" class="btn-back" onclick="showScreen('selecao-setor')">VOLTAR</button>
+            <button type="button" class="btn-save" id="btnSalvar">SALVAR REGISTRO</button>
+            <button type="button" class="btn-back" onclick="showScreen('home')">CANCELAR</button>
         </form>
     </div>
 
-    <div id="lista-inspecoes" class="hidden">
-        <h2 id="titulo-lista">Histórico</h2>
-        <div class="header-line"></div>
-        <div id="cards-container">Carregando...</div>
-        <button type="button" class="btn-back" onclick="showScreen('home')">VOLTAR AO MENU</button>
+    <div id="indicadores" class="hidden">
+        <h2>Indicadores BI</h2>
+        <div class="dash-grid">
+            <div class="metric-card"><h4>Conformes</h4><p id="m-conf" style="color:var(--success)">0</p></div>
+            <div class="metric-card"><h4>Não Conformes</h4><p id="m-nc" style="color:var(--danger)">0</p></div>
+        </div>
+        <div class="chart-container">
+            <h4 style="font-size:11px; color:#858796">RANKING DE DEFEITOS (PARETO)</h4>
+            <canvas id="chartPareto"></canvas>
+        </div>
+        <div class="chart-container">
+            <h4 style="font-size:11px; color:#858796">PRODUÇÃO POR MÁQUINA</h4>
+            <canvas id="chartBarras"></canvas>
+        </div>
+        <button class="menu-btn btn-action" style="background:#1d6f42" onclick="window.exportarParaExcel()">📥 Baixar Relatório Completo</button>
+        <button class="btn-back" onclick="showScreen('home')">VOLTAR</button>
+    </div>
+
+    <div id="lista" class="hidden">
+        <h2 id="t-lista">Histórico</h2>
+        <div id="cards-container"></div>
+        <button class="btn-back" onclick="showScreen('home')">VOLTAR</button>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { 
-        getFirestore, collection, addDoc, getDocs, query, orderBy, enableIndexedDbPersistence 
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCybv0o7mXVrtNpf_CTLK4hHBot23xAr_U",
@@ -155,159 +167,176 @@
         projectId: "app-inspecao-56bc1",
         storageBucket: "app-inspecao-56bc1.firebasestorage.app",
         messagingSenderId: "183990054420",
-        appId: "1:183990054420:web:8d3295ade34778ae010101",
-        measurementId: "G-0S17CVPESK"
+        appId: "1:183990054420:web:8d3295ade34778ae010101"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    enableIndexedDbPersistence(db).catch(()=>{});
 
-    enableIndexedDbPersistence(db).catch(err => console.error("Persistência:", err.code));
+    let cBarras, cPareto;
 
-    const statusDiv = document.getElementById('status-conexao');
-    const btnSalvar = document.getElementById('btnSalvar');
-
-    function atualizarInterfaceConexao() {
-        const isOnline = navigator.onLine;
-        statusDiv.innerText = isOnline ? "CONECTADO AO SISTEMA" : "MODO OFFLINE - SALVANDO RASCUNHO";
-        statusDiv.className = isOnline ? "online" : "offline";
-        if(document.getElementById('home').classList.contains('hidden') === false) carregarDashboard();
-    }
-    window.addEventListener('online', atualizarInterfaceConexao);
-    window.addEventListener('offline', atualizarInterfaceConexao);
-
-    const maquinasPorTecelagem = {
+    const maqSetores = {
         "Tecelagem 1": ["Sg-01", "Sg-02", "Sg-03"],
         "Tecelagem 2": ["TJ-01", "DNR-25", "FJ-15"],
-        "Tecelagem 3": ["Picanol-01", "Picanol-02"]
+        "Tecelagem 3": ["P-01", "P-02", "P-03"],
+        "Tratamento Têxtil": ["Rama-01", "Lavagem-01", "Estufa-01"]
+    };
+
+    window.showScreen = (id) => {
+        document.querySelectorAll('.container > div').forEach(d => d.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+        if(id === 'home') carregarHome();
     };
 
     window.atualizarMaquinas = () => {
-        const unidade = document.getElementById('unidade_tecelagem').value;
-        const select = document.getElementById('maquina');
-        select.innerHTML = '<option value="">Selecione...</option>';
-        if (maquinasPorTecelagem[unidade]) {
-            maquinasPorTecelagem[unidade].forEach(maq => {
-                let opt = document.createElement('option'); opt.value = maq; opt.innerText = maq; select.appendChild(opt);
+        const u = document.getElementById('u_tecelagem').value || document.getElementById('setor_atual').value;
+        const s = document.getElementById('maquina');
+        s.innerHTML = '<option value="">Escolha...</option>';
+        if(maqSetores[u]) {
+            maqSetores[u].forEach(m => {
+                let o = document.createElement('option'); o.value = m; o.innerText = m; s.appendChild(o);
             });
         }
     };
 
     window.abrirFormulario = (setor) => {
         document.getElementById('setor_atual').value = setor;
-        document.getElementById('titulo-form').innerText = setor;
-        document.getElementById('container-tecelagem').classList.toggle('hidden', setor !== 'Tecelagem');
-        document.getElementById('maquina').innerHTML = setor === 'Tecelagem' ? '<option value="">Aguardando...</option>' : '<option value="Industrial-01">Industrial-01</option>';
+        document.getElementById('c-tecelagem').classList.toggle('hidden', setor !== 'Tecelagem');
+        if(setor !== 'Tecelagem') atualizarMaquinas();
         showScreen('form-inspecao');
     };
 
-    async function processarImagem(arquivo) {
-        return new Promise(resolve => {
-            const reader = new FileReader(); reader.readAsDataURL(arquivo);
+    window.toggleNC = () => {
+        const nc = document.getElementById('status').value === 'nao-conforme';
+        document.getElementById('div-nc').classList.toggle('hidden', !nc);
+    };
+
+    window.abrirIndicadores = async () => {
+        showScreen('indicadores');
+        const snap = await getDocs(collection(db, "inspecoes"));
+        let conf = 0, nc = 0, maquinas = {}, defeitos = {};
+
+        snap.forEach(doc => {
+            const i = doc.data();
+            i.status === 'conforme' ? conf++ : nc++;
+            maquinas[i.maquina] = (maquinas[i.maquina] || 0) + 1;
+            if(i.defeito) defeitos[i.defeito] = (defeitos[i.defeito] || 0) + 1;
+        });
+
+        document.getElementById('m-conf').innerText = conf;
+        document.getElementById('m-nc').innerText = nc;
+
+        if(cBarras) cBarras.destroy();
+        if(cPareto) cPareto.destroy();
+
+        // Gráfico de Barras (Maquinas)
+        cBarras = new Chart(document.getElementById('chartBarras'), {
+            type: 'bar',
+            data: { labels: Object.keys(maquinas), datasets: [{ label: 'Inspeções', data: Object.values(maquinas), backgroundColor: '#4e73df' }]},
+            options: { plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#3d426a' }, ticks: { color: '#858796' } } } }
+        });
+
+        // Ranking de Defeitos (Pareto)
+        cPareto = new Chart(document.getElementById('chartPareto'), {
+            type: 'bar',
+            data: { 
+                labels: Object.keys(defeitos), 
+                datasets: [{ label: 'Frequência', data: Object.values(defeitos), backgroundColor: '#e74a3b' }]
+            },
+            options: { indexAxis: 'y', plugins: { legend: { display: false } } }
+        });
+    };
+
+    async function carregarHome() {
+        const snap = await getDocs(collection(db, "inspecoes"));
+        let t = 0, n = 0, r = 0;
+        snap.forEach(doc => { t++; if(doc.data().status === 'nao-conforme') n++; if(doc.metadata.hasPendingWrites) r++; });
+        document.getElementById('h-total').innerText = t;
+        document.getElementById('h-perc').innerText = t > 0 ? (((t-n)/t)*100).toFixed(0) + '%' : '0%';
+        document.getElementById('c-rascunhos').innerText = r;
+    }
+
+    async function processarFoto(file) {
+        if(!file) return null;
+        return new Promise(res => {
+            const reader = new FileReader(); reader.readAsDataURL(file);
             reader.onload = e => {
                 const img = new Image(); img.src = e.target.result;
                 img.onload = () => {
-                    const canvas = document.createElement('canvas'); const MAX = 800;
-                    let w = img.width, h = img.height;
-                    if (w > MAX) { h *= MAX / w; w = MAX; }
-                    canvas.width = w; canvas.height = h;
-                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                    resolve(canvas.toDataURL('image/jpeg', 0.6));
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = 600; canvas.height = (img.height / img.width) * 600;
+                    ctx.drawImage(img, 0, 0, 600, canvas.height);
+                    res(canvas.toDataURL('image/jpeg', 0.7));
                 };
             };
         });
     }
 
-    async function salvarNoFirebase() {
-        const f = document.getElementById('inspectionForm');
-        const status = document.getElementById('status').value;
-        const fotoFile = document.getElementById('foto_nc').files[0];
-        if(!document.getElementById('inspetor').value || !document.getElementById('maquina').value) return alert("Campos obrigatórios!");
-        if(status === 'nao-conforme' && !fotoFile) return alert("Foto obrigatória!");
-
-        btnSalvar.disabled = true; btnSalvar.innerText = "PROCESSANDO...";
+    document.getElementById('btnSalvar').onclick = async () => {
+        const btn = document.getElementById('btnSalvar');
+        btn.disabled = true; btn.innerText = "SALVANDO...";
+        
         try {
+            const foto = await processarFoto(document.getElementById('foto_nc').files[0]);
             const payload = {
-                setor: document.getElementById('setor_atual').value,
-                unidade: document.getElementById('unidade_tecelagem').value || "N/A",
                 inspetor: document.getElementById('inspetor').value,
-                turno: document.getElementById('turno').value,
+                setor: document.getElementById('setor_atual').value,
+                unidade: document.getElementById('u_tecelagem').value || "N/A",
                 maquina: document.getElementById('maquina').value,
                 artigo: document.getElementById('artigo').value,
-                status: status,
+                status: document.getElementById('status').value,
+                tipo: document.getElementById('tipo_produto').value,
+                metragem: document.getElementById('metragem').value,
+                pente: document.getElementById('pente').value,
+                defeito: document.getElementById('status').value === 'nao-conforme' ? document.getElementById('nc_desc').value : null,
+                fotoData: foto,
                 data: new Date().toLocaleString('pt-BR'),
-                timestamp: new Date(),
-                fotoData: fotoFile ? await processarImagem(fotoFile) : null
+                timestamp: new Date()
             };
-            if(status === 'conforme') payload.quantidade = document.getElementById('qtd_conforme').value;
-            else { payload.nao_conformidade = document.getElementById('nc_descricao').value; payload.quantidade_nc = document.getElementById('qtd_nc').value; }
 
             await addDoc(collection(db, "inspecoes"), payload);
-            alert(navigator.onLine ? "Sucesso!" : "Salvo como rascunho!");
+            alert("Sucesso!");
             location.reload();
-        } catch (e) { alert(e.message); btnSalvar.disabled = false; }
-    }
+        } catch (e) { alert("Erro: " + e.message); btn.disabled = false; btn.innerText = "SALVAR REGISTRO"; }
+    };
 
-    async function carregarDashboard() {
-        const snap = await getDocs(collection(db, "inspecoes"));
-        let total = 0, ncs = 0, rascunhos = 0;
-        snap.forEach(doc => { 
-            total++; 
-            if(doc.data().status === 'nao-conforme') ncs++; 
-            if(doc.metadata.hasPendingWrites) rascunhos++;
-        });
-        document.getElementById('stat-total').innerText = total;
-        document.getElementById('stat-perc').innerText = total > 0 ? (((total-ncs)/total)*100).toFixed(1)+"%" : "0%";
-        document.getElementById('stat-nc').innerText = ncs;
-        document.getElementById('count-rascunhos').innerText = rascunhos;
-    }
-
-    async function listarDados(tipo) {
-        showScreen('lista-inspecoes');
+    window.listarDados = async (tipo) => {
+        showScreen('lista');
         const container = document.getElementById('cards-container');
-        document.getElementById('titulo-lista').innerText = tipo === 'rascunhos' ? "Rascunhos Pendentes" : "Histórico";
-        container.innerHTML = "Buscando...";
-        
+        container.innerHTML = "Buscando dados...";
         const snap = await getDocs(query(collection(db, "inspecoes"), orderBy("timestamp", "desc")));
         container.innerHTML = "";
-        let encontrou = false;
-
         snap.forEach(doc => {
-            const item = doc.data();
-            const ehRascunho = doc.metadata.hasPendingWrites;
-            if(tipo === 'rascunhos' && !ehRascunho) return; 
-            
-            encontrou = true;
-            const badge = item.status === 'nao-conforme' ? 'status-nc' : 'status-conforme';
+            const i = doc.data();
+            if(tipo === 'rascunhos' && !doc.metadata.hasPendingWrites) return;
+            const b = i.status === 'nao-conforme' ? 'badge-nc' : 'badge-conforme';
             container.innerHTML += `
-                <div class="card" style="${ehRascunho ? 'border-left: 5px solid var(--warning-orange)' : ''}">
-                    ${ehRascunho ? '<span class="rascunho-tag">⏳ PENDENTE DE SINCRONIZAÇÃO</span>' : ''}
-                    <span class="status-badge ${badge}">${item.status}</span>
-                    <span class="sector-tag">${item.unidade !== "N/A" ? item.unidade : item.setor}</span><br>
-                    <strong>${item.artigo}</strong> | Mq: ${item.maquina} <br>
-                    ${item.fotoData ? `<img src="${item.fotoData}" class="img-preview" onclick="window.open().document.write('<img src=\\'${item.fotoData}\\' style=\\'width:100%\\'>')">` : ''}
-                    <div style="margin-top:8px; font-size:11px; color:#999">${item.data}</div>
+                <div class="card">
+                    <span class="badge ${b}">${i.status.toUpperCase()}</span>
+                    <strong>${i.artigo}</strong> | Máquina: ${i.maquina}<br>
+                    <small>${i.tipo} | ${i.metragem}m | Pente: ${i.pente}</small>
+                    ${i.defeito ? `<div style="color:var(--danger); font-size:12px; margin-top:5px">Defeito: ${i.defeito}</div>` : ''}
+                    ${i.fotoData ? `<img src="${i.fotoData}" class="img-preview">` : ''}
+                    <div style="font-size:10px; color:#555; margin-top:8px">${i.data}</div>
                 </div>`;
         });
-        if(!encontrou) container.innerHTML = tipo === 'rascunhos' ? "<p style='text-align:center'>Nenhum rascunho pendente.</p>" : "Nenhum registro.";
-    }
-
-    window.showScreen = (id) => {
-        document.querySelectorAll('.container > div').forEach(div => div.classList.add('hidden'));
-        document.getElementById(id).classList.remove('hidden');
-        if(id === 'home') carregarDashboard();
     };
 
-    window.toggleFields = () => {
-        const s = document.getElementById('status').value;
-        document.getElementById('div-conforme').classList.toggle('hidden', s !== 'conforme');
-        document.getElementById('div-nao-conforme').classList.toggle('hidden', s !== 'nao-conforme');
+    window.exportarParaExcel = async () => {
+        const snap = await getDocs(collection(db, "inspecoes"));
+        const rows = snap.docs.map(d => {
+            const i = d.data();
+            return { "Data": i.data, "Inspetor": i.inspetor, "Máquina": i.maquina, "Resultado": i.status, "Artigo": i.artigo, "Tipo": i.tipo, "Qtd": i.metragem, "Defeito": i.defeito || "-" };
+        });
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Inspeções");
+        XLSX.writeFile(wb, `Relatorio_Qualidade_${new Date().getTime()}.xlsx`);
     };
 
-    document.getElementById('btnSalvar').addEventListener('click', salvarNoFirebase);
-    window.listarDados = listarDados;
-    atualizarInterfaceConexao();
-    carregarDashboard();
+    carregarHome();
 </script>
 </body>
 </html>
