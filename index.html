@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Qualidade Têxtil BI - V3</title>
+    <title>Qualidade Têxtil BI - Pareto Full</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -20,7 +20,6 @@
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background-color: var(--bg-dark); color: var(--text-light); }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; box-sizing: border-box; }
         
-        /* Dashboard */
         .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
         .metric-card { background: var(--card-dark); padding: 15px; border-radius: 12px; border-bottom: 3px solid var(--primary-blue); text-align: center; }
         .metric-card h4 { margin: 0; font-size: 11px; color: #858796; text-transform: uppercase; }
@@ -29,18 +28,17 @@
         .chart-container { background: var(--card-dark); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
         canvas { max-width: 100%; height: auto !important; }
 
-        /* Menu */
         .menu-btn { width: 100%; padding: 16px; margin: 10px 0; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: white; background: var(--card-dark); display: flex; align-items: center; justify-content: space-between; transition: 0.3s; box-sizing: border-box; }
         .btn-action { background: var(--primary-blue); }
         .btn-warning { background: var(--accent-orange); }
+        .btn-export { background: #1d6f42; width: 100%; padding: 16px; border: none; border-radius: 10px; color: white; font-weight: bold; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
 
         .hidden { display: none; }
         
-        /* Form */
         label { display: block; margin-top: 12px; font-size: 12px; color: #858796; font-weight: bold; }
-        input, select, textarea { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #3d426a; background: #2f335d; color: white; box-sizing: border-box; font-size: 16px; }
+        input, select { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #3d426a; background: #2f335d; color: white; box-sizing: border-box; font-size: 16px; }
         .btn-save { background: var(--success); width: 100%; padding: 16px; border: none; border-radius: 10px; color: white; font-weight: bold; margin-top: 25px; cursor: pointer; }
-        .btn-back { background: transparent; border: 1px solid #3d426a; width: 100%; padding: 12px; margin-top: 10px; color: #858796; border-radius: 8px; cursor: pointer; }
+        .btn-back { background: transparent; border: 1px solid #3d426a; width: 100%; padding: 12px; margin-top: 10px; color: #858796; border-radius: 8px; cursor: pointer; text-align: center; display: block; width: 100%; text-decoration: none; }
 
         .card { background: var(--card-dark); padding: 15px; border-radius: 10px; margin-bottom: 10px; border-left: 4px solid var(--primary-blue); }
         .badge { float: right; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
@@ -55,67 +53,65 @@
     <div id="home">
         <h2 style="text-align:center;">CONTROLE DE QUALIDADE</h2>
         <div class="dash-grid">
-            <div class="metric-card"><h4>Total</h4><p id="h-total">0</p></div>
-            <div class="metric-card" style="border-color: var(--success)"><h4>Eficiência</h4><p id="h-perc">0%</p></div>
+            <div class="metric-card"><h4>Verificações</h4><p id="h-total">0</p></div>
+            <div class="metric-card" style="border-color: var(--success)"><h4>Qualidade</h4><p id="h-perc">0%</p></div>
         </div>
-        <button class="menu-btn btn-action" onclick="showScreen('selecao-setor')"><span>📝 Iniciar Verificação</span> <span>➔</span></button>
-        <button class="menu-btn" onclick="abrirIndicadores()"><span>📊 Dashboard & Ranking</span> <span>➔</span></button>
+        <button class="menu-btn btn-action" onclick="showScreen('selecao-setor')"><span>📝 Registrar Verificação</span> <span>➔</span></button>
+        <button class="menu-btn" onclick="abrirIndicadores()"><span>📊 Dashboard & Pareto</span> <span>➔</span></button>
         <button class="menu-btn" onclick="listarDados('tudo')"><span>📋 Histórico</span> <span>➔</span></button>
-        <button class="menu-btn btn-warning" onclick="listarDados('rascunhos')"><span>⏳ Rascunhos (<span id="c-rascunhos">0</span>)</span></button>
+        <button class="menu-btn btn-warning" onclick="listarDados('rascunhos')"><span>⏳ Pendentes (<span id="c-rascunhos">0</span>)</span></button>
     </div>
 
     <div id="selecao-setor" class="hidden">
         <h2>Selecione o Setor</h2>
-        <button class="menu-btn" onclick="abrirFormulario('Tecelagem')">🧵 Tecelagem</button>
+        <button class="menu-btn" onclick="abrirFormulario('Tecelagem')">🧵 Tecelagem (U1, U2, U3)</button>
         <button class="menu-btn" onclick="abrirFormulario('Tratamento Têxtil')">🧪 Tratamento Têxtil</button>
         <button class="btn-back" onclick="showScreen('home')">VOLTAR</button>
     </div>
 
     <div id="form-inspecao" class="hidden">
-        <h2 id="titulo-form">Nova Inspeção</h2>
+        <h2 id="titulo-form">Nova Verificação</h2>
         <form id="inspectionForm">
             <input type="hidden" id="setor_atual">
-            
             <label>Inspetor</label>
-            <input type="text" id="inspetor" placeholder="Nome do responsável">
-            
+            <input type="text" id="inspetor" placeholder="Nome">
+            <label>Turno</label>
+            <select id="turno">
+                <option value="">Selecione...</option>
+                <option value="Turno A">Turno A</option>
+                <option value="Turno B">Turno B</option>
+                <option value="Turno C">Turno C</option>
+            </select>
             <div id="c-tecelagem" class="hidden">
-                <label>Unidade de Tecelagem</label>
+                <label>Unidade</label>
                 <select id="u_tecelagem" onchange="atualizarMaquinas()">
-                    <option value="">Selecione a Unidade...</option>
+                    <option value="">Selecione...</option>
                     <option value="Tecelagem 1">Tecelagem 1</option>
                     <option value="Tecelagem 2">Tecelagem 2</option>
                     <option value="Tecelagem 3">Tecelagem 3</option>
                 </select>
             </div>
-
             <div style="display:flex; gap:10px">
                 <div style="flex:1"><label>Máquina</label><select id="maquina"></select></div>
                 <div style="flex:1"><label>Artigo</label><input type="text" id="artigo"></div>
             </div>
-
             <label>Resultado</label>
             <select id="status" onchange="toggleNC()">
                 <option value="conforme">✅ CONFORME</option>
                 <option value="nao-conforme">❌ NÃO CONFORME</option>
             </select>
-
             <div id="campos-sempre-visiveis">
-                <label>Tipo de Produto</label>
-                <select id="tipo_produto">
-                    <option value="A metro">A metro</option>
-                    <option value="Confeccionado">Confeccionado</option>
-                </select>
+                <label>Tipo</label>
+                <select id="tipo_produto"><option value="A metro">A metro</option><option value="Confeccionado">Confeccionado</option></select>
                 <div style="display:flex; gap:10px">
-                    <div style="flex:1"><label>Qtd Acompanhada</label><input type="number" id="metragem"></div>
-                    <div style="flex:1"><label>Largura Pente</label><input type="text" id="pente"></div>
+                    <div style="flex:1"><label>Qtd</label><input type="number" id="metragem"></div>
+                    <div style="flex:1"><label>Pente</label><input type="text" id="pente"></div>
                 </div>
             </div>
-
             <div id="div-nc" class="hidden">
-                <label style="color:var(--danger)">Defeito Encontrado</label>
+                <label style="color:var(--danger)">Defeito</label>
                 <select id="nc_desc">
-                    <option value="">Selecione o defeito...</option>
+                    <option value="">Selecione...</option>
                     <option value="Furo">Furo</option>
                     <option value="Mancha">Mancha</option>
                     <option value="Fio Arrebentado">Fio Arrebentado</option>
@@ -123,10 +119,9 @@
                     <option value="Trama Falha">Trama Falha</option>
                     <option value="Outros">Outros</option>
                 </select>
-                <label>Foto do Defeito</label>
+                <label>Foto</label>
                 <input type="file" id="foto_nc" accept="image/*" capture="environment">
             </div>
-
             <button type="button" class="btn-save" id="btnSalvar">SALVAR REGISTRO</button>
             <button type="button" class="btn-back" onclick="showScreen('home')">CANCELAR</button>
         </form>
@@ -136,17 +131,17 @@
         <h2>Indicadores BI</h2>
         <div class="dash-grid">
             <div class="metric-card"><h4>Conformes</h4><p id="m-conf" style="color:var(--success)">0</p></div>
-            <div class="metric-card"><h4>Não Conformes</h4><p id="m-nc" style="color:var(--danger)">0</p></div>
+            <div class="metric-card"><h4>N-Conformes</h4><p id="m-nc" style="color:var(--danger)">0</p></div>
         </div>
         <div class="chart-container">
-            <h4 style="font-size:11px; color:#858796">RANKING DE DEFEITOS (PARETO)</h4>
+            <h4 style="font-size:11px; color:#858796">ANÁLISE DE PARETO (DEFEITOS)</h4>
             <canvas id="chartPareto"></canvas>
         </div>
         <div class="chart-container">
-            <h4 style="font-size:11px; color:#858796">PRODUÇÃO POR MÁQUINA</h4>
+            <h4 style="font-size:11px; color:#858796">VERIFICAÇÕES POR MÁQUINA</h4>
             <canvas id="chartBarras"></canvas>
         </div>
-        <button class="menu-btn btn-action" style="background:#1d6f42" onclick="window.exportarParaExcel()">📥 Baixar Relatório Completo</button>
+        <button class="btn-export" onclick="window.exportarParaExcel()">📥 Baixar Relatório Excel</button>
         <button class="btn-back" onclick="showScreen('home')">VOLTAR</button>
     </div>
 
@@ -177,10 +172,10 @@
     let cBarras, cPareto;
 
     const maqSetores = {
-        "Tecelagem 1": ["Sg-01", "Sg-02", "Sg-03"],
-        "Tecelagem 2": ["TJ-01", "DNR-25", "FJ-15"],
-        "Tecelagem 3": ["P-01", "P-02", "P-03"],
-        "Tratamento Têxtil": ["Rama-01", "Lavagem-01", "Estufa-01"]
+        "Tecelagem 1": ["Sg-01", "Sg-02", "Sg-03", "Sg-04"],
+        "Tecelagem 2": ["TJ-01", "DNR-25", "FJ-15", "FJ-16"],
+        "Tecelagem 3": ["P-01", "P-02", "P-03", "P-04"],
+        "Tratamento Têxtil": ["Rama-01", "Lavagem-01", "Estufa-01", "Polimerizadora"]
     };
 
     window.showScreen = (id) => {
@@ -212,16 +207,17 @@
         document.getElementById('div-nc').classList.toggle('hidden', !nc);
     };
 
+    // Lógica Avançada de Pareto
     window.abrirIndicadores = async () => {
         showScreen('indicadores');
         const snap = await getDocs(collection(db, "inspecoes"));
-        let conf = 0, nc = 0, maquinas = {}, defeitos = {};
+        let conf = 0, nc = 0, maquinas = {}, defeitosContagem = {};
 
         snap.forEach(doc => {
             const i = doc.data();
             i.status === 'conforme' ? conf++ : nc++;
             maquinas[i.maquina] = (maquinas[i.maquina] || 0) + 1;
-            if(i.defeito) defeitos[i.defeito] = (defeitos[i.defeito] || 0) + 1;
+            if(i.defeito) defeitosContagem[i.defeito] = (defeitosContagem[i.defeito] || 0) + 1;
         });
 
         document.getElementById('m-conf').innerText = conf;
@@ -230,21 +226,65 @@
         if(cBarras) cBarras.destroy();
         if(cPareto) cPareto.destroy();
 
-        // Gráfico de Barras (Maquinas)
-        cBarras = new Chart(document.getElementById('chartBarras'), {
-            type: 'bar',
-            data: { labels: Object.keys(maquinas), datasets: [{ label: 'Inspeções', data: Object.values(maquinas), backgroundColor: '#4e73df' }]},
-            options: { plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#3d426a' }, ticks: { color: '#858796' } } } }
+        // 1. Preparar Dados para o Pareto (Ordenar do maior para o menor)
+        const sortedDefeitos = Object.entries(defeitosContagem).sort((a,b) => b[1] - a[1]);
+        const labels = sortedDefeitos.map(d => d[0]);
+        const dataFrequencia = sortedDefeitos.map(d => d[1]);
+        
+        // 2. Calcular Linha Percentual Acumulada
+        const totalDefeitos = dataFrequencia.reduce((a,b) => a + b, 0);
+        let somaAcumulada = 0;
+        const dataPercentual = dataFrequencia.map(f => {
+            somaAcumulada += f;
+            return ((somaAcumulada / totalDefeitos) * 100).toFixed(1);
         });
 
-        // Ranking de Defeitos (Pareto)
+        // Gráfico de Pareto (Barras + Linha)
         cPareto = new Chart(document.getElementById('chartPareto'), {
-            type: 'bar',
-            data: { 
-                labels: Object.keys(defeitos), 
-                datasets: [{ label: 'Frequência', data: Object.values(defeitos), backgroundColor: '#e74a3b' }]
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        type: 'line',
+                        label: '% Acumulado',
+                        data: dataPercentual,
+                        borderColor: '#f39c12',
+                        backgroundColor: '#f39c12',
+                        yAxisID: 'y1',
+                        tension: 0.3,
+                        pointRadius: 4
+                    },
+                    {
+                        type: 'bar',
+                        label: 'Frequência',
+                        data: dataFrequencia,
+                        backgroundColor: '#e74a3b',
+                        yAxisID: 'y',
+                        borderRadius: 5
+                    }
+                ]
             },
-            options: { indexAxis: 'y', plugins: { legend: { display: false } } }
+            options: {
+                scales: {
+                    y: { 
+                        type: 'linear', position: 'left', beginAtZero: true, 
+                        grid: { color: '#3d426a' }, ticks: { color: '#858796' },
+                        title: { display: true, text: 'Qtd de Defeitos', color: '#858796' }
+                    },
+                    y1: { 
+                        type: 'linear', position: 'right', min: 0, max: 100,
+                        grid: { drawOnChartArea: false }, ticks: { color: '#f39c12', callback: v => v + '%' },
+                        title: { display: true, text: '% Acumulado', color: '#f39c12' }
+                    }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        cBarras = new Chart(document.getElementById('chartBarras'), {
+            type: 'bar',
+            data: { labels: Object.keys(maquinas), datasets: [{ label: 'Qtd', data: Object.values(maquinas), backgroundColor: '#4e73df' }]},
+            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#3d426a' } } } }
         });
     };
 
@@ -257,31 +297,14 @@
         document.getElementById('c-rascunhos').innerText = r;
     }
 
-    async function processarFoto(file) {
-        if(!file) return null;
-        return new Promise(res => {
-            const reader = new FileReader(); reader.readAsDataURL(file);
-            reader.onload = e => {
-                const img = new Image(); img.src = e.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = 600; canvas.height = (img.height / img.width) * 600;
-                    ctx.drawImage(img, 0, 0, 600, canvas.height);
-                    res(canvas.toDataURL('image/jpeg', 0.7));
-                };
-            };
-        });
-    }
-
     document.getElementById('btnSalvar').onclick = async () => {
         const btn = document.getElementById('btnSalvar');
+        if(!document.getElementById('inspetor').value || !document.getElementById('turno').value) return alert("Preencha Nome e Turno.");
         btn.disabled = true; btn.innerText = "SALVANDO...";
-        
         try {
-            const foto = await processarFoto(document.getElementById('foto_nc').files[0]);
             const payload = {
                 inspetor: document.getElementById('inspetor').value,
+                turno: document.getElementById('turno').value,
                 setor: document.getElementById('setor_atual').value,
                 unidade: document.getElementById('u_tecelagem').value || "N/A",
                 maquina: document.getElementById('maquina').value,
@@ -291,11 +314,9 @@
                 metragem: document.getElementById('metragem').value,
                 pente: document.getElementById('pente').value,
                 defeito: document.getElementById('status').value === 'nao-conforme' ? document.getElementById('nc_desc').value : null,
-                fotoData: foto,
                 data: new Date().toLocaleString('pt-BR'),
                 timestamp: new Date()
             };
-
             await addDoc(collection(db, "inspecoes"), payload);
             alert("Sucesso!");
             location.reload();
@@ -305,35 +326,25 @@
     window.listarDados = async (tipo) => {
         showScreen('lista');
         const container = document.getElementById('cards-container');
-        container.innerHTML = "Buscando dados...";
+        container.innerHTML = "Carregando...";
         const snap = await getDocs(query(collection(db, "inspecoes"), orderBy("timestamp", "desc")));
         container.innerHTML = "";
         snap.forEach(doc => {
             const i = doc.data();
             if(tipo === 'rascunhos' && !doc.metadata.hasPendingWrites) return;
             const b = i.status === 'nao-conforme' ? 'badge-nc' : 'badge-conforme';
-            container.innerHTML += `
-                <div class="card">
-                    <span class="badge ${b}">${i.status.toUpperCase()}</span>
-                    <strong>${i.artigo}</strong> | Máquina: ${i.maquina}<br>
-                    <small>${i.tipo} | ${i.metragem}m | Pente: ${i.pente}</small>
-                    ${i.defeito ? `<div style="color:var(--danger); font-size:12px; margin-top:5px">Defeito: ${i.defeito}</div>` : ''}
-                    ${i.fotoData ? `<img src="${i.fotoData}" class="img-preview">` : ''}
-                    <div style="font-size:10px; color:#555; margin-top:8px">${i.data}</div>
-                </div>`;
+            container.innerHTML += `<div class="card"><span class="badge ${b}">${i.status.toUpperCase()}</span><strong>${i.artigo}</strong><br><small>${i.inspetor} (${i.turno}) | Mq: ${i.maquina}</small></div>`;
         });
     };
 
     window.exportarParaExcel = async () => {
+        if (typeof XLSX === 'undefined') return alert("Carregando módulo...");
         const snap = await getDocs(collection(db, "inspecoes"));
-        const rows = snap.docs.map(d => {
-            const i = d.data();
-            return { "Data": i.data, "Inspetor": i.inspetor, "Máquina": i.maquina, "Resultado": i.status, "Artigo": i.artigo, "Tipo": i.tipo, "Qtd": i.metragem, "Defeito": i.defeito || "-" };
-        });
+        const rows = snap.docs.map(d => d.data());
         const ws = XLSX.utils.json_to_sheet(rows);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Inspeções");
-        XLSX.writeFile(wb, `Relatorio_Qualidade_${new Date().getTime()}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, "Dados");
+        XLSX.writeFile(wb, `Relatorio_${new Date().getTime()}.xlsx`);
     };
 
     carregarHome();
